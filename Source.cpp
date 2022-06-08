@@ -1,8 +1,10 @@
 #include <iostream>
 #include <Windows.h>
 #include <vector>
+#include <stack>
 #include <ctime>
 #include <conio.h>
+//#define ESC 27
 
 using namespace std;
 
@@ -38,11 +40,13 @@ void SetColor(int text, int background)
 	SetConsoleTextAttribute(hStdOut, (WORD)((background << 4) | text));
 }
 
-class Map {
-private:
-	const int BORDER = 100; // граница пол€
+const int BORDER = 100; // граница пол€
 	const int EMPTY_CELL = 0; // пуста€ €чейка 
 	const int MINE = 10; // мина
+
+class Map {
+private:
+	
 	int size; // размер пол€ включа€ границы
 	vector <vector<int>> map;	
 	vector <vector<int>> mask;
@@ -55,7 +59,10 @@ Map() {
 		int result = 1;
 		mask[x][y] = 1;
 		if (map[x][y] == MINE) {
-			result = 0;
+			result = MINE;
+		}
+	    else if (map[x][y] == EMPTY_CELL) {
+			result = EMPTY_CELL;
 		}
 		show();
 
@@ -215,6 +222,69 @@ Map() {
 
 		}
 	}
+
+	void fill(int px, int py) {
+		
+		stack <int> stk;
+		stk.push(px);
+		stk.push(py);
+
+		int x = 0, y = 0;
+
+		while (true){
+			
+			y = stk.top();
+			stk.pop();
+			x = stk.top();
+			stk.pop();
+			if (map[x][y + 1] == EMPTY_CELL && mask[x][y + 1] == 0) {
+				stk.push(x);
+				stk.push(y + 1);
+			}
+			mask[x][y + 1] = 1;
+			if (map[x][y - 1] == EMPTY_CELL && mask[x][y - 1] == 0) {
+				stk.push(x);
+				stk.push(y - 1);
+			}
+			mask[x][y - 1] = 1;
+			if (map[x + 1][y + 1] == EMPTY_CELL && mask[x + 1][y + 1] == 0) {
+				stk.push(x + 1);
+				stk.push(y + 1);
+			}
+			mask[x + 1][y + 1] = 1;
+			if (map[x + 1][y - 1] == EMPTY_CELL && mask[x + 1][y - 1] == 0) {
+				stk.push(x + 1);
+				stk.push(y - 1);
+			}
+			mask[x + 1][y - 1] = 1;
+			if (map[x - 1][y + 1] == EMPTY_CELL && mask[x - 1][y + 1] == 0) {
+				stk.push(x - 1);
+				stk.push(y + 1);
+			}
+			mask[x - 1][y + 1] = 1;
+			if (map[x - 1][y - 1] == EMPTY_CELL && mask[x - 1][y - 1] == 0) {
+				stk.push(x - 1);
+				stk.push(y - 1);
+			}
+			mask[x - 1][y - 1] = 1;
+			if (map[x + 1][y] == EMPTY_CELL && mask[x + 1][y] == 0) {
+				stk.push(x + 1);
+				stk.push(y);
+			}
+			mask[x + 1][y] = 1;
+			if (map[x - 1][y] == EMPTY_CELL && mask[x - 1][y] == 0) {
+				stk.push(x - 1);
+				stk.push(y);
+			}
+			mask[x - 1][y] = 1;
+			if (stk.empty())
+				break;
+		}
+
+		show();
+
+	}
+
 };
 
 class Keyboard {
@@ -302,7 +372,7 @@ public:
 		Map map;
 		map.initMap();
 		map.initMask();
-		map.SetRandMines(29);
+		map.SetRandMines(10);
 		map.SetDigits();
 		map.show();
 
@@ -323,12 +393,24 @@ public:
 			case 80: cs.incY(); break; // вниз
 			case 75: cs.decX(); break; // влево
 			case 72: cs.decY(); break; // вверх
+			case 27:
+					/*char key;
+					do {
+						key = _getch();
+					} while (key != ESC);*/
+					exit = true;
 			case 13:
-				if (map.openCell(cs.getX(), cs.getY()) == 0) {
+				int result = map.openCell(cs.getX(), cs.getY());
+				if (result == MINE) {
 					gameOver();
 					exit = true;
 					system("cls");
 				}
+
+				if (result == EMPTY_CELL) {
+					map.fill(cs.getX(), cs.getY());
+				}
+
 			break; // вверх
 			}
 
@@ -341,8 +423,7 @@ public:
 		}
 	}
 };
-int main() {
-
+int main(void) {
 	srand(time(0));
 	Game game;
 	game.run();
